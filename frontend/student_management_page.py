@@ -171,3 +171,5 @@ class StudentsPage(ctk.CTk):
 if __name__ == "__main__":
     app = StudentsPage()
     app.mainloop()
+
+    
