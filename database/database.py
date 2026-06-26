@@ -35,6 +35,16 @@ CREATE TABLE IF NOT EXISTS courses (
 )
 """)
 
+cursor.execute("""student_id INTEGER PRIMARY KEY AUTOINCREMENT,
+full_name TEXT NOT NULL,
+email TEXT UNIQUE,
+phone TEXT,
+course TEXT,
+gender TEXT,
+address TEXT,
+status TEXT DEFAULT 'Active'
+)
+""")
 conn.commit()
 
 print("Database and Tables Created Successfully!")
