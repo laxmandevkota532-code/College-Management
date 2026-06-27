@@ -1,8 +1,6 @@
 import customtkinter as ctk
 
-# -----------------------------
-# App Configuration
-# -----------------------------
+
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
@@ -12,10 +10,7 @@ class WelcomePage(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Student Management System")
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        self.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.after(100, lambda: self.state("zoomed"))
         self.configure(fg_color="#F8F9FC")
 
         # Main Container
@@ -42,6 +37,14 @@ class WelcomePage(ctk.CTk):
         )
         top_bar.pack(fill="x")
 
+        top_bar_label = ctk.CTkLabel(
+            top_bar,
+            text="College Management System",
+            font=("Segoe UI", 16, "bold"),
+            text_color="white"
+        )
+        top_bar_label.pack(side="left", padx=30, pady=0)
+
     # -----------------------------
     # Main Content
     # -----------------------------
@@ -66,7 +69,7 @@ class WelcomePage(ctk.CTk):
         # Logo
         logo_label = ctk.CTkLabel(
             left_frame,
-            text="🎓 Student Management System",
+            text="🎓 College Management System",
             font=("Segoe UI", 28, "bold"),
             text_color="#111827"
         )
@@ -75,17 +78,18 @@ class WelcomePage(ctk.CTk):
         # Welcome Title
         title = ctk.CTkLabel(
             left_frame,
-            text="Welcome!",
+            text="Welcome to\nCollege Management",
             font=("Segoe UI", 72, "bold"),
-            text_color="#111827"
+            text_color="#111827",
+            justify="left"
         )
         title.pack(anchor="w")
 
         # Description
         desc = ctk.CTkLabel(
             left_frame,
-            text="Manage student records efficiently and\n"
-                 "effectively with our system.",
+            text="Manage students, faculty, academic programs,\n"
+                 "and campus records through one modern platform.",
             font=("Segoe UI", 24),
             justify="left",
             text_color="#6B7280"
@@ -134,7 +138,7 @@ class WelcomePage(ctk.CTk):
         self.create_stat_card(
             stats_frame,
             "1250",
-            "Students",
+            "Enrolled Students",
             0,
             0
         )
@@ -142,7 +146,7 @@ class WelcomePage(ctk.CTk):
         self.create_stat_card(
             stats_frame,
             "24",
-            "Courses",
+            "Academic Programs",
             0,
             1
         )
@@ -150,7 +154,7 @@ class WelcomePage(ctk.CTk):
         self.create_stat_card(
             stats_frame,
             "45",
-            "Teachers",
+            "Faculty Members",
             1,
             0
         )
@@ -158,7 +162,7 @@ class WelcomePage(ctk.CTk):
         self.create_stat_card(
             stats_frame,
             "92%",
-            "Attendance",
+            "Attendance Rate",
             1,
             1
         )
@@ -198,7 +202,7 @@ class WelcomePage(ctk.CTk):
             text_color="#6B7280"
         )
         title_label.pack()
-    
+
     def open_login(self):
         print("Open Login Page")
         from frontend.login import LoginPage
