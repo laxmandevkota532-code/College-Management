@@ -5,6 +5,7 @@ from frontend.teachers_management_page import TeachersPage
 from frontend.attendance_page import AttendancePage
 from frontend.reports_page import ReportsPage
 from frontend.setting_page import SettingsPage
+from frontend.add_student_page import AddStudentPage
 
 # Color Palette Configuration
 PRIMARY_BLUE = "#4F5BD5"
@@ -21,8 +22,11 @@ ctk.set_default_color_theme("blue")
 
 class DashboardHomePage(ctk.CTkScrollableFrame):
     """Reusable page class for the main dashboard overview."""
-    def __init__(self, master):
+    def __init__(self, master, open_add_student_callback=None):
         super().__init__(master, fg_color=BACKGROUND, corner_radius=0)
+        
+        # Store the callback as an instance variable
+        self.open_add_student_callback = open_add_student_callback
         
         # Inner padding for the page content
         self.container = ctk.CTkFrame(self, fg_color="transparent")
@@ -139,10 +143,18 @@ class DashboardHomePage(ctk.CTkScrollableFrame):
             ).pack(fill="x", pady=6, padx=20)
 
     # --- QUICK UTILITY INTERACTION EVENT METHODS ---
-    def action_add_student(self): print("Action: Add Student Launched")
-    def action_add_course(self): print("Action: Add Course Launched")
-    def action_gen_report(self): print("Action: Generate Report Launched")
-    def action_take_attendance(self): print("Action: Attendance Launched")
+    def action_add_student(self):
+        if self.open_add_student_callback:
+            self.open_add_student_callback()
+    
+    def action_add_course(self): 
+        print("Action: Add Course Launched")
+    
+    def action_gen_report(self): 
+        print("Action: Generate Report Launched")
+    
+    def action_take_attendance(self): 
+        print("Action: Attendance Launched")
 
 
 class DashboardPage(ctk.CTkFrame):
@@ -262,8 +274,6 @@ class DashboardPage(ctk.CTkFrame):
         top_bar.grid(row=0, column=0, sticky="nsew")
         top_bar.pack_propagate(False)
 
-    
-
         # Right Interaction Dashboard Utilities Grouping Frame
         right_utility_frame = ctk.CTkFrame(top_bar, fg_color="transparent")
         right_utility_frame.pack(side="right", padx=30, pady=15)
@@ -308,11 +318,29 @@ class DashboardPage(ctk.CTkFrame):
     
     def menu_dashboard(self):
         self.set_active_menu("🏠 Dashboard")
-        self.show_page(DashboardHomePage)
+
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = DashboardHomePage(
+            self.right_container,
+            open_add_student_callback=self.open_add_student_from_dashboard
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
         
     def menu_students(self):
         self.set_active_menu("👨‍🎓 Students")
-        self.show_page(StudentManagementPage)
+
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = StudentManagementPage(
+            self.right_container,
+            open_add_student_callback=self.open_add_student_from_students
+        )   
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
         
     def menu_courses(self): 
         self.set_active_menu("📚 Courses")
@@ -336,6 +364,28 @@ class DashboardPage(ctk.CTkFrame):
         
     def menu_logout(self): 
         print("Logout")
+    
+    def open_add_student_from_dashboard(self):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = AddStudentPage(
+            self.right_container,
+            back_callback=self.menu_dashboard
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_add_student_from_students(self):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = AddStudentPage(
+            self.right_container,
+            back_callback=self.menu_students
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
 
 if __name__ == "__main__":
     root = ctk.CTk()
@@ -348,3 +398,4 @@ if __name__ == "__main__":
     # Initialize UI Component Canvas Instance
     app = DashboardPage(root)
     root.mainloop()
+

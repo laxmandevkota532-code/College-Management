@@ -1,0 +1,390 @@
+import customtkinter as ctk
+
+# --------------------------------------------------
+# DESIGN SYSTEM CONSTANTS
+# --------------------------------------------------
+BACKGROUND = "#F8F9FC"
+CARD = "#FFFFFF"
+
+PRIMARY_BLUE = "#4F5BD5"
+HOVER_BLUE = "#3F4ACB"
+
+TEXT_DARK = "#111827"
+TEXT_GRAY = "#6B7280"
+
+BORDER = "#E5E7EB"
+
+FONT = "Segoe UI"
+
+
+# --------------------------------------------------
+# ADD STUDENT PAGE COMPONENT
+# --------------------------------------------------
+class AddStudentPage(ctk.CTkFrame):
+
+    def __init__(self, master, back_callback=None, **kwargs):
+        super().__init__(master, fg_color=BACKGROUND, **kwargs)
+
+        # Store navigation callback
+        self.back_callback = back_callback
+
+        # Track form field widgets
+        self.fields = {}
+
+        # Configure main full-page frame grid layout
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)  # Top Header
+        self.grid_rowconfigure(1, weight=1)  # Two-column Body Split
+
+        # Component builder pipeline
+        self.build_header()
+        self.build_body()
+
+    def go_back(self):
+        """Triggers the navigation callback routing workflow back to the previous layout view."""
+        if self.back_callback:
+            self.back_callback()
+
+    def set_back_callback(self, back_callback):
+        """Dynamically updates the navigation callback when opened from different pages."""
+        self.back_callback = back_callback
+
+    def build_header(self):
+        """Builds full-width top header with back button and breadcrumb layout information."""
+        header_container = ctk.CTkFrame(self, fg_color="transparent")
+        header_container.grid(row=0, column=0, sticky="ew", padx=40, pady=(30, 20))
+
+        # Horizontal stacking layout setup
+        header_container.grid_rowconfigure(0, weight=1)
+        header_container.grid_columnconfigure(1, weight=1)
+
+        # 1. Back button
+        back_btn = ctk.CTkButton(
+            header_container,
+            text="← Back",
+            font=(FONT, 14, "bold"),
+            text_color=PRIMARY_BLUE,
+            fg_color="transparent",
+            hover_color=BORDER,
+            width=80,
+            height=36,
+            corner_radius=6,
+            command=self.go_back
+        )
+        back_btn.grid(row=0, column=0, sticky="w", padx=(0, 20))
+
+        # 2. Text titles stack panel
+        text_frame = ctk.CTkFrame(header_container, fg_color="transparent")
+        text_frame.grid(row=0, column=1, sticky="w")
+
+        title = ctk.CTkLabel(
+            text_frame,
+            text="Register New Student",
+            font=(FONT, 24, "bold"),
+            text_color=TEXT_DARK
+        )
+        title.pack(anchor="w")
+
+        subtitle = ctk.CTkLabel(
+            text_frame,
+            text="Fill student information below.",
+            font=(FONT, 13),
+            text_color=TEXT_GRAY
+        )
+        subtitle.pack(anchor="w", pady=(2, 0))
+
+    def build_body(self):
+        """Constructs the responsive 70/30 main container layout grid split configuration."""
+        body_container = ctk.CTkFrame(self, fg_color="transparent")
+        body_container.grid(row=1, column=0, sticky="nsew", padx=40, pady=(0, 40))
+
+        body_container.grid_rowconfigure(0, weight=1)
+        body_container.grid_columnconfigure(0, weight=7)  # Left Column Form Panel (70%)
+        body_container.grid_columnconfigure(1, weight=3)  # Right Column Side Panel (30%)
+
+        # --------------------------------------------------
+        # LEFT COLUMN: FORM PANEL CARD
+        # --------------------------------------------------
+        left_card = ctk.CTkFrame(
+            body_container,
+            fg_color=CARD,
+            corner_radius=16,
+            border_width=1,
+            border_color=BORDER
+        )
+        left_card.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        left_card.grid_rowconfigure(0, weight=1)  # Form container fills workspace space
+        left_card.grid_rowconfigure(1, weight=0)  # Fixed action buttons container area at bottom
+        left_card.grid_columnconfigure(0, weight=1)
+
+        # Scrollable form layout canvas viewport
+        self.form_container = ctk.CTkScrollableFrame(
+            left_card,
+            fg_color="transparent",
+            scrollbar_button_color=BORDER,
+            scrollbar_button_hover_color=TEXT_GRAY
+        )
+        self.form_container.grid(row=0, column=0, sticky="nsew", padx=35, pady=(25, 10))
+
+        self.populate_form_fields()
+        self.create_buttons(left_card)
+
+        # --------------------------------------------------
+        # RIGHT COLUMN: RECENT STUDENTS PANEL CARD
+        # --------------------------------------------------
+        right_card = ctk.CTkFrame(
+            body_container,
+            fg_color=CARD,
+            corner_radius=16,
+            border_width=1,
+            border_color=BORDER
+        )
+        right_card.grid(row=0, column=1, sticky="nsew", padx=(15, 0))
+        right_card.grid_columnconfigure(0, weight=1)
+
+        recent_title = ctk.CTkLabel(
+            right_card,
+            text="Recent Added Students",
+            font=(FONT, 16, "bold"),
+            text_color=TEXT_DARK
+        )
+        recent_title.grid(row=0, column=0, sticky="w", padx=25, pady=(25, 15))
+
+        # Container viewport list panel stack logic
+        recent_list_frame = ctk.CTkFrame(right_card, fg_color="transparent")
+        recent_list_frame.grid(row=1, column=0, sticky="ew", padx=25)
+        recent_list_frame.grid_columnconfigure(0, weight=1)
+
+        # Static placeholder list data rendering logic
+        dummy_recent_students = [
+            {"id": "STU001", "name": "John Smith"},
+            {"id": "STU002", "name": "Alice Johnson"},
+            {"id": "STU003", "name": "Michael Brown"},
+            {"id": "STU004", "name": "Emma Wilson"}
+        ]
+
+        for i, student in enumerate(dummy_recent_students):
+            item_card = ctk.CTkFrame(
+                recent_list_frame,
+                fg_color=BACKGROUND,
+                corner_radius=8,
+                border_width=1,
+                border_color=BORDER,
+                height=65
+            )
+            item_card.grid(row=i, column=0, sticky="ew", pady=(0, 10))
+            item_card.pack_propagate(False)
+
+            lbl_id = ctk.CTkLabel(
+                item_card,
+                text=student["id"],
+                font=(FONT, 11, "bold"),
+                text_color=PRIMARY_BLUE
+            )
+            lbl_id.pack(anchor="w", padx=15, pady=(10, 0))
+
+            lbl_name = ctk.CTkLabel(
+                item_card,
+                text=student["name"],
+                font=(FONT, 13, "bold"),
+                text_color=TEXT_DARK
+            )
+            lbl_name.pack(anchor="w", padx=15, pady=(0, 10))
+
+    def populate_form_fields(self):
+        """Renders grid structure form elements linearly down inside the viewport panel canvas container."""
+        # 1. Student ID (Read Only)
+        self.create_label(self.form_container, "Student ID").pack(anchor="w", pady=(10, 4))
+        self.fields["id"] = self.create_entry(self.form_container, placeholder="STU-2026-0001", readonly=True)
+        self.fields["id"].pack(fill="x", pady=(0, 12))
+
+        # 2. Full Name
+        self.create_label(self.form_container, "Full Name").pack(anchor="w", pady=(10, 4))
+        self.fields["name"] = self.create_entry(self.form_container, placeholder="John Doe")
+        self.fields["name"].pack(fill="x", pady=(0, 12))
+
+        # 3. Email Address
+        self.create_label(self.form_container, "Email Address").pack(anchor="w", pady=(10, 4))
+        self.fields["email"] = self.create_entry(self.form_container, placeholder="johndoe@example.com")
+        self.fields["email"].pack(fill="x", pady=(0, 12))
+
+        # 4. Phone Number
+        self.create_label(self.form_container, "Phone Number").pack(anchor="w", pady=(10, 4))
+        self.fields["phone"] = self.create_entry(self.form_container, placeholder="+1 (555) 012-3456")
+        self.fields["phone"].pack(fill="x", pady=(0, 12))
+
+        # 5. Date of Birth
+        self.create_label(self.form_container, "Date of Birth").pack(anchor="w", pady=(10, 4))
+        self.fields["dob"] = self.create_entry(self.form_container, placeholder="YYYY-MM-DD")
+        self.fields["dob"].pack(fill="x", pady=(0, 12))
+
+        # 6. Course Selection
+        self.create_label(self.form_container, "Course").pack(anchor="w", pady=(10, 4))
+        courses = ["Computer Science", "Information Technology", "Data Science", "Business Administration"]
+        self.fields["course"] = self.create_combobox(self.form_container, courses)
+        self.fields["course"].pack(fill="x", pady=(0, 12))
+
+        # 7. Gender Segment (Radio buttons)
+        self.create_label(self.form_container, "Gender").pack(anchor="w", pady=(10, 6))
+        gender_frame = ctk.CTkFrame(self.form_container, fg_color="transparent")
+        gender_frame.pack(fill="x", pady=(0, 12))
+
+        self.gender_var = ctk.StringVar(value="Male")
+        for gender in ["Male", "Female", "Other"]:
+            radio = ctk.CTkRadioButton(
+                gender_frame,
+                text=gender,
+                variable=self.gender_var,
+                value=gender,
+                font=(FONT, 13),
+                text_color=TEXT_DARK,
+                fg_color=PRIMARY_BLUE,
+                hover_color=HOVER_BLUE
+            )
+            radio.pack(side="left", padx=(0, 24))
+
+        # 8. Address Box
+        self.create_label(self.form_container, "Address").pack(anchor="w", pady=(10, 4))
+        self.fields["address"] = self.create_textbox(self.form_container)
+        self.fields["address"].pack(fill="x", pady=(0, 12))
+
+        # 9. Status Framework
+        self.create_label(self.form_container, "Status").pack(anchor="w", pady=(10, 4))
+        statuses = ["Active", "Inactive", "Suspended"]
+        self.fields["status"] = self.create_combobox(self.form_container, statuses)
+        self.fields["status"].pack(fill="x", pady=(0, 20))
+
+    def create_label(self, parent, text):
+        return ctk.CTkLabel(
+            parent,
+            text=text,
+            font=(FONT, 13, "bold"),
+            text_color=TEXT_DARK
+        )
+
+    def create_entry(self, parent, placeholder="", readonly=False):
+        entry = ctk.CTkEntry(
+            parent,
+            placeholder_text=placeholder,
+            font=(FONT, 13),
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=BORDER,
+            fg_color=CARD,
+            text_color=TEXT_DARK,
+            placeholder_text_color=TEXT_GRAY
+        )
+        if readonly:
+            entry.insert(0, placeholder)
+            entry.configure(state="readonly")
+        return entry
+
+    def create_combobox(self, parent, values):
+        box = ctk.CTkComboBox(
+            parent,
+            values=values,
+            font=(FONT, 13),
+            dropdown_font=(FONT, 13),
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=BORDER,
+            fg_color=CARD,
+            text_color=TEXT_DARK,
+            button_color=BORDER,
+            button_hover_color=TEXT_GRAY,
+            dropdown_fg_color=CARD,
+            dropdown_text_color=TEXT_DARK,
+            dropdown_hover_color=BACKGROUND,
+            state="readonly"
+        )
+        box.set(values[0] if values else "")
+        return box
+
+    def create_textbox(self, parent):
+        return ctk.CTkTextbox(
+            parent,
+            font=(FONT, 13),
+            height=85,
+            corner_radius=8,
+            border_width=1,
+            border_color=BORDER,
+            fg_color=CARD,
+            text_color=TEXT_DARK,
+            wrap="word"
+        )
+
+    def create_buttons(self, parent_container):
+        """Constructs primary form commit button groups along bottom section layout structure."""
+        btn_frame = ctk.CTkFrame(parent_container, fg_color="transparent")
+        btn_frame.grid(row=1, column=0, sticky="ew", padx=35, pady=(15, 25))
+
+        btn_frame.columnconfigure(0, weight=1)
+        btn_frame.columnconfigure(1, weight=1)
+
+        # Clear Interface Button
+        clear_btn = ctk.CTkButton(
+            btn_frame,
+            text="Clear",
+            font=(FONT, 14, "bold"),
+            height=44,
+            corner_radius=8,
+            fg_color="transparent",
+            text_color=TEXT_DARK,
+            border_width=1,
+            border_color=BORDER,
+            hover_color=BACKGROUND,
+            command=self.clear_fields
+        )
+        clear_btn.grid(row=0, column=0, padx=(0, 8), sticky="ew")
+
+        # Save Student Action Commit Button
+        save_btn = ctk.CTkButton(
+            btn_frame,
+            text="Save Student",
+            font=(FONT, 14, "bold"),
+            height=44,
+            corner_radius=8,
+            fg_color=PRIMARY_BLUE,
+            text_color="#FFFFFF",
+            hover_color=HOVER_BLUE,
+            command=self.save_student
+        )
+        save_btn.grid(row=0, column=1, padx=(8, 0), sticky="ew")
+
+    def save_student(self):
+        print("Save Student")
+
+    def clear_fields(self):
+        print("Clear")
+        for key, widget in self.fields.items():
+            if key == "id":
+                continue  # Maintain Read-Only Student ID template default string label
+
+            if isinstance(widget, ctk.CTkEntry):
+                widget.delete(0, "end")
+            elif isinstance(widget, ctk.CTkComboBox):
+                default_val = widget.cget("values")[0] if widget.cget("values") else ""
+                widget.set(default_val)
+            elif isinstance(widget, ctk.CTkTextbox):
+                widget.delete("1.0", "end")
+
+        self.gender_var.set("Male")
+
+
+# --------------------------------------------------
+# ISOLATED WINDOW INSTANTIATION (LOCAL RUN PREVIEW)
+# --------------------------------------------------
+if __name__ == "__main__":
+    root = ctk.CTk()
+    root.title("Student Management System - Full Add Student Page UI")
+    root.geometry("1100x750")
+    root.wm_geometry("1100x750")
+    root.configure(fg_color=BACKGROUND)
+
+    # Component easily integrates back within main application controller dashboard structures
+    page = AddStudentPage(root, back_callback=lambda: print("Go Back Call Initiated"))
+    page.pack(fill="both", expand=True)
+
+    root.mainloop()

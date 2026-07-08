@@ -5,8 +5,11 @@ ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
 class StudentManagementPage(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, open_add_student_callback=None):
         super().__init__(master, fg_color="#F8F9FC")
+
+        # Navigation Callback Injection
+        self.open_add_student_callback = open_add_student_callback
 
         # --- Color Palette ---
         self.PRIMARY_BLUE = "#4F5BD5"
@@ -70,7 +73,8 @@ class StudentManagementPage(ctk.CTkFrame):
             hover_color=self.HOVER_BLUE, 
             text_color=self.WHITE, 
             height=45, 
-            corner_radius=8
+            corner_radius=8,
+            command=self.open_add_student
         )
         add_btn.grid(row=0, column=1, sticky="e")
 
@@ -181,12 +185,19 @@ class StudentManagementPage(ctk.CTkFrame):
             )
             delete_btn.grid(row=0, column=2, padx=3)
 
+    def open_add_student(self):
+        """Triggers UI navigation frame routing workflow via parent dashboard state injection handles."""
+        if self.open_add_student_callback:
+            self.open_add_student_callback()
+        else:
+            print("Open Add Student")
+
 
 if __name__ == "__main__":
     # Kept ONLY for standalone file testing. 
     # Your Dashboard integration will naturally ignore this block.
     root = ctk.CTk()
     root.geometry("1100x700")
-    page = StudentManagementPage(root)
+    page = StudentManagementPage(root, open_add_student_callback=lambda: print("Open Add Student"))
     page.pack(fill="both", expand=True)
     root.mainloop()
