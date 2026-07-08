@@ -262,14 +262,7 @@ class DashboardPage(ctk.CTkFrame):
         top_bar.grid(row=0, column=0, sticky="nsew")
         top_bar.pack_propagate(False)
 
-        # Left Module Segment Title Indicator
-        title_label = ctk.CTkLabel(
-            top_bar, 
-            text="Dashboard", 
-            font=("Helvetica", 20, "bold"), 
-            text_color=TEXT_DARK
-        )
-        title_label.pack(side="left", padx=30, pady=25)
+    
 
         # Right Interaction Dashboard Utilities Grouping Frame
         right_utility_frame = ctk.CTkFrame(top_bar, fg_color="transparent")

@@ -56,7 +56,7 @@ class LoginPage:
 
         logo_label = ctk.CTkLabel(
             login_container, 
-            text="🎓 Student Management System",
+            text="🎓 College Management System",
             font=("Segoe UI", 18, "bold"),
             text_color=PRIMARY_BLUE
         )
