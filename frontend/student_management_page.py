@@ -1,15 +1,17 @@
 import customtkinter as ctk
+from frontend.student_view_page import ViewStudentPage
 
 # Set appearance mode and default color theme
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
 class StudentManagementPage(ctk.CTkFrame):
-    def __init__(self, master, open_add_student_callback=None):
+    def __init__(self, master, open_add_student_callback=None, open_view_student_callback=None):
         super().__init__(master, fg_color="#F8F9FC")
 
         # Navigation Callback Injection
         self.open_add_student_callback = open_add_student_callback
+        self.open_view_student_callback = open_view_student_callback
 
         # --- Color Palette ---
         self.PRIMARY_BLUE = "#4F5BD5"
@@ -167,7 +169,8 @@ class StudentManagementPage(ctk.CTkFrame):
             view_btn = ctk.CTkButton(
                 action_panel, text="View", font=ctk.CTkFont(size=12, weight="bold"), 
                 fg_color="#F3F4F6", hover_color="#E5E7EB", text_color=self.TEXT_DARK, 
-                width=46, height=28, corner_radius=6
+                width=46, height=28, corner_radius=6,
+                command=lambda s=student: self.open_view_student(s)
             )
             view_btn.grid(row=0, column=0, padx=3)
 
@@ -191,6 +194,13 @@ class StudentManagementPage(ctk.CTkFrame):
             self.open_add_student_callback()
         else:
             print("Open Add Student")
+
+    def open_view_student(self, student):
+        """Triggers View Student page with student data and back callback."""
+        if self.open_view_student_callback:
+            self.open_view_student_callback(student)
+        else:
+            print(f"Open View Student: {student['name']}")
 
 
 if __name__ == "__main__":
