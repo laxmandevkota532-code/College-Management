@@ -6,6 +6,17 @@ from frontend.attendance_page import AttendancePage
 from frontend.reports_page import ReportsPage
 from frontend.setting_page import SettingsPage
 from frontend.add_student_page import AddStudentPage
+from frontend.student_view_page import ViewStudentPage
+from frontend.student_edit_page import EditStudentPage
+from frontend.add_course_page import AddCoursePage
+from frontend.course_view_page import ViewCoursePage
+from backend.dashboard_crud import (
+    get_total_students,
+    get_total_courses,
+    get_total_teachers,
+    get_attendance_rate,
+    get_recent_students
+)
 
 # Color Palette Configuration
 PRIMARY_BLUE = "#4F5BD5"
@@ -22,11 +33,17 @@ ctk.set_default_color_theme("blue")
 
 class DashboardHomePage(ctk.CTkScrollableFrame):
     """Reusable page class for the main dashboard overview."""
-    def __init__(self, master, open_add_student_callback=None):
+    def __init__(
+        self,
+        master,
+        open_add_student_callback=None,
+        open_add_course_callback=None
+    ):
         super().__init__(master, fg_color=BACKGROUND, corner_radius=0)
         
         # Store the callback as an instance variable
         self.open_add_student_callback = open_add_student_callback
+        self.open_add_course_callback = open_add_course_callback
         
         # Inner padding for the page content
         self.container = ctk.CTkFrame(self, fg_color="transparent")
@@ -47,11 +64,17 @@ class DashboardHomePage(ctk.CTkScrollableFrame):
         for i in range(4):
             stats_frame.grid_columnconfigure(i, weight=1, uniform="stat_card")
 
+        # Load Dashboard Statistics
+        total_students = get_total_students()
+        total_courses = get_total_courses()
+        total_teachers = get_total_teachers()
+        attendance_rate = get_attendance_rate()
+
         stats_data = [
-            ("Total Students", "1,250", 0),
-            ("Total Courses", "24", 1),
-            ("Total Teachers", "45", 2),
-            ("Attendance Rate", "92%", 3)
+            ("Total Students", str(total_students), 0),
+            ("Total Courses", str(total_courses), 1),
+            ("Total Teachers", str(total_teachers), 2),
+            ("Attendance Rate", f"{attendance_rate}%", 3)
         ]
 
         for title, value, col in stats_data:
@@ -89,31 +112,52 @@ class DashboardHomePage(ctk.CTkScrollableFrame):
             hdr_frame.grid_columnconfigure(idx, weight=1, uniform="tbl_col")
             ctk.CTkLabel(hdr_frame, text=h_text, font=("Helvetica", 12, "bold"), text_color=TEXT_DARK).grid(row=0, column=idx, sticky="w", padx=10, pady=5)
 
-        # Mock Student Data Sets
-        student_records = [
-            ("ST001", "John Doe", "BCA", "john@gmail.com", "Active"),
-            ("ST002", "Jane Smith", "BIT", "jane@gmail.com", "Active"),
-            ("ST003", "Michael Johnson", "CSIT", "michael@gmail.com", "Active"),
-            ("ST004", "Emily Brown", "BCA", "emily@gmail.com", "Active")
-        ]
+        # Live Student Data from Database
+        student_records = get_recent_students()
 
         # Populate Rows Inline
-        for row_idx, data in enumerate(student_records):
-            row_frame = ctk.CTkFrame(table_container, fg_color="transparent")
-            row_frame.pack(fill="x", pady=4, padx=20)
-            
-            for col_idx, text_val in enumerate(data):
-                row_frame.grid_columnconfigure(col_idx, weight=1, uniform="tbl_col")
+        if not student_records:
+            ctk.CTkLabel(
+                table_container,
+                text="No Students Found",
+                font=("Helvetica", 13),
+                text_color=TEXT_GRAY
+            ).pack(pady=20, padx=20)
+        else:
+            for row_idx, data in enumerate(student_records):
+                row_frame = ctk.CTkFrame(table_container, fg_color="transparent")
+                row_frame.pack(fill="x", pady=4, padx=20)
                 
-                if col_idx == 4: # Status processing color styling rule
-                    lbl = ctk.CTkLabel(row_frame, text=text_val, font=("Helvetica", 12, "bold"), text_color="#10B981", fg_color="#D1FAE5", corner_radius=6, width=65, height=22)
-                    lbl.grid(row=0, column=col_idx, sticky="w", padx=10, pady=5)
-                else:
-                    ctk.CTkLabel(row_frame, text=text_val, font=("Helvetica", 13), text_color=TEXT_DARK).grid(row=0, column=col_idx, sticky="w", padx=10, pady=5)
+                for col_idx, text_val in enumerate(data):
+                    row_frame.grid_columnconfigure(col_idx, weight=1, uniform="tbl_col")
+                    
+                    if col_idx == 4:  # Status
 
-            # Horizontal separation grid rule lines
-            if row_idx < len(student_records) - 1:
-                ctk.CTkFrame(table_container, fg_color="#F3F4F6", height=1).pack(fill="x", pady=2, padx=20)
+                        if str(text_val).lower() == "active":
+                            badge_fg = "#D1FAE5"
+                            badge_text = "#10B981"
+                        else:
+                            badge_fg = "#FEE2E2"
+                            badge_text = "#EF4444"
+
+                        lbl = ctk.CTkLabel(
+                            row_frame,
+                            text=text_val,
+                            font=("Helvetica", 12, "bold"),
+                            text_color=badge_text,
+                            fg_color=badge_fg,
+                            corner_radius=6,
+                            width=70,
+                            height=22
+                         )
+
+                        lbl.grid(row=0, column=col_idx, sticky="w", padx=10, pady=5)
+                    else:
+                        ctk.CTkLabel(row_frame, text=text_val, font=("Helvetica", 13), text_color=TEXT_DARK).grid(row=0, column=col_idx, sticky="w", padx=10, pady=5)
+
+                # Horizontal separation grid rule lines
+                if row_idx < len(student_records) - 1:
+                    ctk.CTkFrame(table_container, fg_color="#F3F4F6", height=1).pack(fill="x", pady=2, padx=20)
 
         # Right Container: Quick Actions Grid Setup
         actions_container = ctk.CTkFrame(split_frame, fg_color=WHITE, corner_radius=12, border_width=1, border_color="#E5E7EB")
@@ -147,8 +191,9 @@ class DashboardHomePage(ctk.CTkScrollableFrame):
         if self.open_add_student_callback:
             self.open_add_student_callback()
     
-    def action_add_course(self): 
-        print("Action: Add Course Launched")
+    def action_add_course(self):
+        if self.open_add_course_callback:
+            self.open_add_course_callback()
     
     def action_gen_report(self): 
         print("Action: Generate Report Launched")
@@ -324,7 +369,8 @@ class DashboardPage(ctk.CTkFrame):
 
         self.content_frame = DashboardHomePage(
             self.right_container,
-            open_add_student_callback=self.open_add_student_from_dashboard
+            open_add_student_callback=self.open_add_student_from_dashboard,
+            open_add_course_callback=self.open_add_course_from_dashboard
         )
 
         self.content_frame.grid(row=1, column=0, sticky="nsew")
@@ -337,14 +383,26 @@ class DashboardPage(ctk.CTkFrame):
 
         self.content_frame = StudentManagementPage(
             self.right_container,
-            open_add_student_callback=self.open_add_student_from_students
+            open_add_student_callback=self.open_add_student_from_students,
+            open_view_student_callback=self.open_view_student,
+            open_edit_student_callback=self.open_edit_student
         )   
 
         self.content_frame.grid(row=1, column=0, sticky="nsew")
         
-    def menu_courses(self): 
+    def menu_courses(self):
         self.set_active_menu("📚 Courses")
-        self.show_page(CoursesPage)
+
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = CoursesPage(
+            self.right_container,
+            open_add_course_callback=self.open_add_course_from_courses,
+            open_view_course_callback=self.open_view_course
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
         
     def menu_teachers(self): 
         self.set_active_menu("👨‍🏫 Teachers")
@@ -387,6 +445,64 @@ class DashboardPage(ctk.CTkFrame):
 
         self.content_frame.grid(row=1, column=0, sticky="nsew")
 
+    def open_view_student(self, student):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = ViewStudentPage(
+            self.right_container,
+            student_data=student,
+            back_callback=self.menu_students
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_edit_student(self, student):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = EditStudentPage(
+            self.right_container,
+            student_data=student,
+            back_callback=self.menu_students
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_add_course_from_dashboard(self):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = AddCoursePage(
+            self.right_container,
+            back_callback=self.menu_dashboard
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_add_course_from_courses(self):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = AddCoursePage(
+            self.right_container,
+            back_callback=self.menu_courses
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_view_course(self, course):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = ViewCoursePage(
+            self.right_container,
+            course_data=course,
+            back_callback=self.menu_courses
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
 if __name__ == "__main__":
     root = ctk.CTk()
     root.title("Student Management System - Dashboard")
@@ -398,4 +514,3 @@ if __name__ == "__main__":
     # Initialize UI Component Canvas Instance
     app = DashboardPage(root)
     root.mainloop()
-

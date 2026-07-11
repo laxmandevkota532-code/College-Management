@@ -1,206 +1,192 @@
-"""
-Student CRUD Operations
-------------------------
-Every SQL statement for the 'students' table lives here.
-The UI layer must NEVER execute raw SQL - it only calls the
-functions defined in this module and handles the exceptions
-they raise.
-"""
-
+import re
 import sqlite3
+
 from database.database import get_connection
 
-# Columns that are safe to use in ORDER BY / WHERE clauses.
-# (Whitelisting prevents SQL injection via f-string column names.)
-_SORTABLE_COLUMNS = {
-    "student_id": "student_id",
-    "fullname": "fullname",
-    "course": "course",
-    "status": "status",
-    "id": "id",
-}
-
-
+# --------------------------------------------------
+# CUSTOM EXCEPTIONS
+# --------------------------------------------------
 class DuplicateStudentIDError(Exception):
     """Raised when a student_id already exists in the database."""
     pass
 
 
 class DuplicateEmailError(Exception):
-    """Raised when an email already exists in the database."""
+    """Raised when an email address already exists in the database."""
     pass
 
 
-def generate_student_id():
+# --------------------------------------------------
+# STUDENT ID GENERATION
+# --------------------------------------------------
+def generate_student_id() -> str:
     """
-    Generate the next sequential Student ID in the format STU-0001.
-
-    Looks at the highest existing numeric suffix among IDs matching
-    'STU-####' and returns the next one in sequence.
+    Generates the next sequential Student ID in the format STU-0001.
+    Looks at the most recently inserted row (by id) and increments the
+    numeric suffix of its student_id.
     """
     conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT student_id FROM students
-            WHERE student_id LIKE 'STU-%'
-            ORDER BY CAST(SUBSTR(student_id, 5) AS INTEGER) DESC
-            LIMIT 1
-        """)
-        row = cursor.fetchone()
-        if row is None:
-            return "STU-0001"
+    cursor = conn.cursor()
+    cursor.execute("SELECT student_id FROM students ORDER BY id DESC LIMIT 1")
+    row = cursor.fetchone()
+    conn.close()
 
-        last_number = int(row["student_id"].split("-")[1])
-        return f"STU-{last_number + 1:04d}"
-    finally:
-        conn.close()
+    next_number = 1
+    if row is not None and row["student_id"]:
+        match = re.search(r"(\d+)$", row["student_id"])
+        if match:
+            next_number = int(match.group(1)) + 1
+
+    return f"STU-{next_number:04d}"
 
 
-def insert_student(student_data):
+# --------------------------------------------------
+# INSERT
+# --------------------------------------------------
+def insert_student(student_data: dict) -> None:
     """
-    Insert a new student record.
+    Inserts a new student record into the existing 'students' table.
 
-    student_data: tuple in the order
-        (student_id, fullname, gender, dob, email, phone, course, address, status)
+    Expected keys in student_data:
+        student_id, fullname, email, phone, dob, course, gender, address, status
 
     Raises:
-        DuplicateStudentIDError - if student_id already exists
-        DuplicateEmailError     - if email already exists
+        DuplicateStudentIDError: if student_id already exists.
+        DuplicateEmailError: if email already exists.
     """
     conn = get_connection()
+    cursor = conn.cursor()
     try:
-        cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO students
                 (student_id, fullname, gender, dob, email, phone, course, address, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, student_data)
+            """,
+            (
+                student_data["student_id"],
+                student_data["fullname"],
+                student_data["gender"],
+                student_data["dob"],
+                student_data["email"],
+                student_data["phone"],
+                student_data["course"],
+                student_data["address"],
+                student_data["status"],
+            ),
+        )
         conn.commit()
-        return cursor.lastrowid
-    except sqlite3.IntegrityError as error:
-        _raise_specific_integrity_error(error)
+    except sqlite3.IntegrityError as e:
+        message = str(e).lower()
+        if "student_id" in message:
+            raise DuplicateStudentIDError(
+                f"Student ID '{student_data['student_id']}' already exists."
+            ) from e
+        if "email" in message:
+            raise DuplicateEmailError(
+                f"Email '{student_data['email']}' is already registered."
+            ) from e
+        raise
     finally:
         conn.close()
 
 
-def get_all_students(order_by="id", descending=True):
+# --------------------------------------------------
+# READ (RECENT STUDENTS)
+# --------------------------------------------------
+def get_recent_students(limit: int = 4) -> list[dict]:
     """
-    Fetch every student, ordered by the given column.
-    Defaults to newest-first (id DESC), per spec.
-    """
-    column = _SORTABLE_COLUMNS.get(order_by, "id")
-    direction = "DESC" if descending else "ASC"
-
-    conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            SELECT student_id, fullname, course, email, phone, status
-            FROM students
-            ORDER BY {column} {direction}
-        """)
-        return cursor.fetchall()
-    finally:
-        conn.close()
-
-
-def get_student(student_id):
-    """Fetch a single full student record by student_id. Returns None if not found."""
-    conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM students WHERE student_id = ?", (student_id,))
-        return cursor.fetchone()
-    finally:
-        conn.close()
-
-
-def update_student(student_id, student_data):
-    """
-    Update an existing student identified by student_id.
-
-    student_data: tuple in the order
-        (fullname, gender, dob, email, phone, course, address, status)
-
-    Returns True if a row was updated, False if student_id was not found.
-    Raises DuplicateEmailError if the new email collides with another record.
+    Returns the most recently added students as a list of dicts,
+    each containing at least "student_id" and "fullname".
     """
     conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE students
-            SET fullname = ?, gender = ?, dob = ?, email = ?,
-                phone = ?, course = ?, address = ?, status = ?
-            WHERE student_id = ?
-        """, (*student_data, student_id))
-        conn.commit()
-        return cursor.rowcount > 0
-    except sqlite3.IntegrityError as error:
-        _raise_specific_integrity_error(error)
-    finally:
-        conn.close()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT student_id, fullname FROM students ORDER BY id DESC LIMIT ?",
+        (limit,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
 
 
-def delete_student(student_id):
-    """Delete a student by student_id. Returns True if a row was deleted."""
-    conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM students WHERE student_id = ?", (student_id,))
-        conn.commit()
-        return cursor.rowcount > 0
-    finally:
-        conn.close()
-
-
-def search_students(keyword, order_by="id", descending=True):
+# --------------------------------------------------
+# READ (ALL STUDENTS)
+# --------------------------------------------------
+def get_all_students() -> list[dict]:
     """
-    Search students by Student ID, Name, Email, or Course
-    (case-insensitive partial match), ordered by the given column.
+    Returns every student record for the Student Management table,
+    ordered by insertion order (oldest first).
+
+    Each dict contains: student_id, fullname, gender, dob, email,
+    phone, course, address, status.
     """
-    column = _SORTABLE_COLUMNS.get(order_by, "id")
-    direction = "DESC" if descending else "ASC"
-    like_term = f"%{keyword}%"
-
     conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            SELECT student_id, fullname, course, email, phone, status
-            FROM students
-            WHERE student_id LIKE ? OR fullname LIKE ? OR email LIKE ? OR course LIKE ?
-            ORDER BY {column} {direction}
-        """, (like_term, like_term, like_term, like_term))
-        return cursor.fetchall()
-    finally:
-        conn.close()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT student_id, fullname, gender, dob, email, phone, course, address, status
+        FROM students
+        ORDER BY id ASC
+        """
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
 
 
-def email_exists(email, exclude_student_id=None):
-    """Check whether an email is already registered (optionally excluding one student)."""
+# --------------------------------------------------
+# DELETE
+# --------------------------------------------------
+def delete_student(student_id: str) -> None:
+    """
+    Deletes the student with the given student_id from the database.
+    """
     conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        if exclude_student_id:
-            cursor.execute(
-                "SELECT 1 FROM students WHERE email = ? AND student_id != ?",
-                (email, exclude_student_id),
-            )
-        else:
-            cursor.execute("SELECT 1 FROM students WHERE email = ?", (email,))
-        return cursor.fetchone() is not None
-    finally:
-        conn.close()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM students WHERE student_id = ?", (student_id,))
+    conn.commit()
+    conn.close()
 
 
-def _raise_specific_integrity_error(error):
-    """Translate a raw sqlite3.IntegrityError into a specific, catchable exception."""
-    message = str(error).lower()
-    if "student_id" in message:
-        raise DuplicateStudentIDError("This Student ID already exists.") from error
-    elif "email" in message:
-        raise DuplicateEmailError("This email is already registered.") from error
-    else:
-        raise error
+# --------------------------------------------------
+# UPDATE
+# --------------------------------------------------
+def update_student(student_data: dict) -> None:
+    """
+    Updates an existing student using student_id.
+
+    Expected keys in student_data:
+        student_id, fullname, email, phone, dob, course, gender, address, status
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE students
+        SET
+            fullname = ?,
+            gender = ?,
+            dob = ?,
+            email = ?,
+            phone = ?,
+            course = ?,
+            address = ?,
+            status = ?
+        WHERE student_id = ?
+    """, (
+        student_data["fullname"],
+        student_data["gender"],
+        student_data["dob"],
+        student_data["email"],
+        student_data["phone"],
+        student_data["course"],
+        student_data["address"],
+        student_data["status"],
+        student_data["student_id"]
+    ))
+
+    conn.commit()
+    conn.close()

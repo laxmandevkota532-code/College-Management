@@ -1,17 +1,25 @@
 import customtkinter as ctk
-from frontend.student_view_page import ViewStudentPage
+from tkinter import messagebox
+from backend.student_crud import get_all_students, delete_student
 
 # Set appearance mode and default color theme
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
 class StudentManagementPage(ctk.CTkFrame):
-    def __init__(self, master, open_add_student_callback=None, open_view_student_callback=None):
+    def __init__(
+        self,
+        master,
+        open_add_student_callback=None,
+        open_view_student_callback=None,
+        open_edit_student_callback=None
+    ):
         super().__init__(master, fg_color="#F8F9FC")
 
         # Navigation Callback Injection
         self.open_add_student_callback = open_add_student_callback
         self.open_view_student_callback = open_view_student_callback
+        self.open_edit_student_callback = open_edit_student_callback
 
         # --- Color Palette ---
         self.PRIMARY_BLUE = "#4F5BD5"
@@ -29,20 +37,6 @@ class StudentManagementPage(ctk.CTkFrame):
         # (Only 1 column now, 2 rows: Action Bar and Table)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
-
-        # --- Sample Data ---
-        self.students_data = [
-            {"id": "STU001", "name": "Aarav Sharma",    "gender": "Male",   "course": "CSIT",  "phone": "9801234567", "email": "aarav.sharma@email.com",    "status": "Active"},
-            {"id": "STU002", "name": "Priya Thapa",     "gender": "Female", "course": "BCA",   "phone": "9812345678", "email": "priya.thapa@email.com",     "status": "Active"},
-            {"id": "STU003", "name": "Rohan Karki",     "gender": "Male",   "course": "BIT",   "phone": "9823456789", "email": "rohan.karki@email.com",     "status": "Inactive"},
-            {"id": "STU004", "name": "Sita Rai",        "gender": "Female", "course": "BBS",   "phone": "9834567890", "email": "sita.rai@email.com",        "status": "Active"},
-            {"id": "STU005", "name": "Bikram Magar",    "gender": "Male",   "course": "BIM",   "phone": "9845678901", "email": "bikram.magar@email.com",    "status": "Active"},
-            {"id": "STU006", "name": "Anjali Gurung",   "gender": "Female", "course": "CSIT",  "phone": "9856789012", "email": "anjali.gurung@email.com",   "status": "Inactive"},
-            {"id": "STU007", "name": "Suresh Pandey",   "gender": "Male",   "course": "BCA",   "phone": "9867890123", "email": "suresh.pandey@email.com",   "status": "Active"},
-            {"id": "STU008", "name": "Nisha Tamang",    "gender": "Female", "course": "BIT",   "phone": "9878901234", "email": "nisha.tamang@email.com",    "status": "Active"},
-            {"id": "STU009", "name": "Dipesh Bhandari", "gender": "Male",   "course": "BBS",   "phone": "9889012345", "email": "dipesh.bhandari@email.com", "status": "Active"},
-            {"id": "STU010", "name": "Kamala Shrestha", "gender": "Female", "course": "BIM",   "phone": "9890123456", "email": "kamala.shrestha@email.com", "status": "Inactive"},
-        ]
 
         self.create_main_content()
 
@@ -125,17 +119,23 @@ class StudentManagementPage(ctk.CTkFrame):
         self.populate_table_data()
 
     def populate_table_data(self):
-        """Renders raw arrays iteratively matching design systems guidelines precisely."""
-        
+        """Loads students from the database and renders them into the table."""
+
+        # Clear any existing rows before re-rendering (needed for refresh after delete)
+        for widget in self.scroll_frame.winfo_children():
+            widget.destroy()
+
+        students = get_all_students()
+
         px = 20  # Consistent X padding
         py = 18  # Consistent Y padding for better row height
 
-        for row_idx, student in enumerate(self.students_data):
-            
-            id_lbl = ctk.CTkLabel(self.scroll_frame, text=student["id"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
+        for row_idx, student in enumerate(students):
+
+            id_lbl = ctk.CTkLabel(self.scroll_frame, text=student["student_id"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
             id_lbl.grid(row=row_idx, column=0, padx=px, pady=py, sticky="ew")
 
-            name_lbl = ctk.CTkLabel(self.scroll_frame, text=student["name"], font=ctk.CTkFont(size=14, weight="bold"), text_color=self.TEXT_DARK, anchor="w")
+            name_lbl = ctk.CTkLabel(self.scroll_frame, text=student["fullname"], font=ctk.CTkFont(size=14, weight="bold"), text_color=self.TEXT_DARK, anchor="w")
             name_lbl.grid(row=row_idx, column=1, padx=px, pady=py, sticky="ew")
 
             gender_lbl = ctk.CTkLabel(self.scroll_frame, text=student["gender"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
@@ -177,16 +177,38 @@ class StudentManagementPage(ctk.CTkFrame):
             edit_btn = ctk.CTkButton(
                 action_panel, text="Edit", font=ctk.CTkFont(size=12, weight="bold"), 
                 fg_color=self.PANEL_BG, hover_color="#E0E7FF", text_color=self.PRIMARY_BLUE, 
-                width=46, height=28, corner_radius=6
+                width=46, height=28, corner_radius=6,
+                command=lambda s=student: self.open_edit_student(s)
             )
             edit_btn.grid(row=0, column=1, padx=3)
 
             delete_btn = ctk.CTkButton(
                 action_panel, text="Delete", font=ctk.CTkFont(size=12, weight="bold"), 
                 fg_color="#FEE2E2", hover_color="#FCA5A5", text_color=self.DANGER_RED, 
-                width=50, height=28, corner_radius=6
+                width=50, height=28, corner_radius=6,
+                command=lambda s=student: self.handle_delete_student(s)
             )
             delete_btn.grid(row=0, column=2, padx=3)
+
+    def handle_delete_student(self, student):
+        """Confirms, deletes the student from the database, then refreshes the table."""
+
+        confirm = messagebox.askyesno(
+            "Confirm Delete",
+            f"Are you sure you want to delete\n\n{student['fullname']} ({student['student_id']})?"
+        )
+
+        if not confirm:
+            return
+
+        delete_student(student["student_id"])
+
+        messagebox.showinfo(
+            "Success",
+            "Student deleted successfully."
+        )
+
+        self.populate_table_data()
 
     def open_add_student(self):
         """Triggers UI navigation frame routing workflow via parent dashboard state injection handles."""
@@ -200,7 +222,14 @@ class StudentManagementPage(ctk.CTkFrame):
         if self.open_view_student_callback:
             self.open_view_student_callback(student)
         else:
-            print(f"Open View Student: {student['name']}")
+            print(f"Open View Student: {student['fullname']}")
+
+    def open_edit_student(self, student):
+        """Open Edit Student page."""
+        if self.open_edit_student_callback:
+            self.open_edit_student_callback(student)
+        else:
+            print(f"Open Edit Student: {student['fullname']}")
 
 
 if __name__ == "__main__":

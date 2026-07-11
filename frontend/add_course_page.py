@@ -1,4 +1,13 @@
 import customtkinter as ctk
+from tkinter import messagebox
+
+from backend.course_crud import (
+    generate_course_id,
+    insert_course,
+    DuplicateCourseIDError,
+    get_recent_courses
+)
+
 
 class AddCoursePage(ctk.CTkFrame):
     def __init__(self, parent, back_callback=None, **kwargs):
@@ -16,7 +25,7 @@ class AddCoursePage(ctk.CTkFrame):
         self.FONT_FAMILY = "Segoe UI"
 
         # Initialize form string variables
-        self.course_id_var = ctk.StringVar(value="CRS-2026-042")
+        self.course_id_var = ctk.StringVar(value=generate_course_id())
         self.course_name_var = ctk.StringVar()
         self.course_code_var = ctk.StringVar()
         self.department_var = ctk.StringVar()
@@ -131,28 +140,34 @@ class AddCoursePage(ctk.CTkFrame):
         recent_title = ctk.CTkLabel(recent_card, text="Recently Added Courses", font=(self.FONT_FAMILY, 16, "bold"), text_color=self.TEXT_DARK)
         recent_title.grid(row=0, column=0, sticky="w", padx=20, pady=(20, 12))
 
-        # Dummy data container
+        # Recent courses container
         recent_list = ctk.CTkFrame(recent_card, fg_color="transparent")
         recent_list.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
         recent_list.grid_columnconfigure(0, weight=1)
 
-        dummy_courses = [
-            {"code": "CS-101", "name": "Introduction to Computer Science", "dept": "Computer Science"},
-            {"code": "MATH-201", "name": "Linear Algebra & Calculus", "dept": "Mathematics"},
-            {"code": "ENG-104", "name": "Technical Writing Skills", "dept": "Humanities"}
-        ]
+        # Load real recent courses from the database
+        recent_courses = get_recent_courses()
 
-        for idx, item in enumerate(dummy_courses):
-            item_frame = ctk.CTkFrame(recent_list, fg_color="#F9FAFB", corner_radius=8, height=60)
-            item_frame.grid(row=idx, column=0, sticky="ew", pady=4)
-            item_frame.grid_columnconfigure(0, weight=1)
-            item_frame.grid_propagate(False)
+        if not recent_courses:
+            empty_label = ctk.CTkLabel(
+                recent_list,
+                text="No Courses Found",
+                font=(self.FONT_FAMILY, 13),
+                text_color=self.TEXT_GRAY
+            )
+            empty_label.grid(row=0, column=0, sticky="ew", pady=8)
+        else:
+            for idx, item in enumerate(recent_courses):
+                item_frame = ctk.CTkFrame(recent_list, fg_color="#F9FAFB", corner_radius=8, height=60)
+                item_frame.grid(row=idx, column=0, sticky="ew", pady=4)
+                item_frame.grid_columnconfigure(0, weight=1)
+                item_frame.grid_propagate(False)
 
-            c_name = ctk.CTkLabel(item_frame, text=f"{item['code']} - {item['name']}", font=(self.FONT_FAMILY, 13, "bold"), text_color=self.TEXT_DARK, anchor="w")
-            c_name.grid(row=0, column=0, sticky="ew", padx=12, pady=(8, 2))
+                c_name = ctk.CTkLabel(item_frame, text=item["course_name"], font=(self.FONT_FAMILY, 13, "bold"), text_color=self.TEXT_DARK, anchor="w")
+                c_name.grid(row=0, column=0, sticky="ew", padx=12, pady=(8, 2))
 
-            c_dept = ctk.CTkLabel(item_frame, text=item["dept"], font=(self.FONT_FAMILY, 11), text_color=self.TEXT_GRAY, anchor="w")
-            c_dept.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+                c_id = ctk.CTkLabel(item_frame, text=item["course_id"], font=(self.FONT_FAMILY, 11), text_color=self.TEXT_GRAY, anchor="w")
+                c_id.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
 
     def populate_form(self):
         # Row 0: Course ID & Course Code
@@ -341,7 +356,56 @@ class AddCoursePage(ctk.CTkFrame):
         self.update_summary()
 
     def save_course(self):
-        print("Course Saved")
+        """Validate form input and persist the new course to the database."""
+        course_name = self.course_name_var.get().strip()
+        semester = self.semester_var.get().strip()
+        description = self.description_text.get("1.0", "end").strip() if hasattr(self, 'description_text') else ""
+
+        # Validate required fields
+        required_fields = {
+            "Course Name": course_name,
+            "Semester": semester,
+        }
+
+        missing_fields = [name for name, value in required_fields.items() if not value]
+        if missing_fields:
+            messagebox.showwarning(
+                "Missing Information",
+                f"Please fill in the following required fields: {', '.join(missing_fields)}"
+            )
+            return
+
+        # Build the dictionary matching the backend's course table
+        course_data = {
+            "course_id": self.course_id_var.get(),
+            "course_name": course_name,
+            "duration": semester,
+            "description": description,
+        }
+
+        # Persist to database
+        try:
+            insert_course(course_data)
+        except DuplicateCourseIDError:
+            messagebox.showerror(
+                "Duplicate Course ID",
+                f"Course ID '{course_data['course_id']}' already exists."
+            )
+            return
+        except Exception as e:
+            messagebox.showerror(
+                "Save Failed",
+                f"An error occurred while saving the course: {e}"
+            )
+            return
+
+        messagebox.showinfo(
+            "Success",
+            "Course added successfully."
+        )
+
+        if self.back_callback:
+            self.back_callback()
 
     def go_back(self):
         if self.back_callback:

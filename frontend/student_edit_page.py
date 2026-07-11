@@ -1,5 +1,7 @@
 import customtkinter as ctk
-from tkinter import StringVar
+from tkinter import StringVar, messagebox
+
+from backend.student_crud import update_student, DuplicateEmailError
 
 
 class EditStudentPage(ctk.CTkFrame):
@@ -21,8 +23,8 @@ class EditStudentPage(ctk.CTkFrame):
 
         # Dummy student data fallback
         self.DUMMY_STUDENT = {
-            "id": "STU001",
-            "name": "Rajesh Kumar",
+            "student_id": "STU001",
+            "fullname": "Rajesh Kumar",
             "email": "rajesh.kumar@email.com",
             "phone": "9801234567",
             "dob": "2003-05-15",
@@ -146,14 +148,14 @@ class EditStudentPage(ctk.CTkFrame):
         # Student ID (Read-Only)
         self.create_entry(
             "Student ID",
-            "id",
+            "student_id",
             read_only=True
         )
 
         # Full Name
         self.create_entry(
             "Full Name",
-            "name"
+            "fullname"
         )
 
         # Email Address
@@ -341,7 +343,7 @@ class EditStudentPage(ctk.CTkFrame):
 
         id_value = ctk.CTkLabel(
             summary_card,
-            text=self.student_data.get("id", "N/A"),
+            text=self.student_data.get("student_id", "N/A"),
             text_color=self.PRIMARY_BLUE,
             font=ctk.CTkFont("Segoe UI", 12, "bold")
         )
@@ -358,7 +360,7 @@ class EditStudentPage(ctk.CTkFrame):
 
         name_value = ctk.CTkLabel(
             summary_card,
-            text=self.student_data.get("name", "N/A"),
+            text=self.student_data.get("fullname", "N/A"),
             text_color=self.TEXT_DARK,
             font=ctk.CTkFont("Segoe UI", 12, "bold"),
             wraplength=240
@@ -477,22 +479,59 @@ class EditStudentPage(ctk.CTkFrame):
             self.status_widget.set(self.original_status)
 
     def save_changes(self):
-        """Save all changes (placeholder for database integration)."""
+        """Validate, persist changes to the database, and navigate back on success."""
         # Collect current values
-        updated_data = {}
-        for field_key, entry_widget in self.form_fields.items():
-            updated_data[field_key] = entry_widget.get()
-        
-        # Add Gender RadioButton value
-        updated_data["gender"] = self.gender_var.get()
-        
-        # Add Status ComboBox value
-        if self.status_widget:
-            updated_data["status"] = self.status_widget.get()
+        updated_data = {
+            "student_id": self.student_data.get("student_id", ""),
+            "fullname": self.form_fields["fullname"].get().strip(),
+            "email": self.form_fields["email"].get().strip(),
+            "phone": self.form_fields["phone"].get().strip(),
+            "dob": self.form_fields["dob"].get().strip(),
+            "course": self.form_fields["course"].get().strip(),
+            "address": self.form_fields["address"].get().strip(),
+            "gender": self.gender_var.get(),
+            "status": self.status_widget.get() if self.status_widget else "Active",
+        }
 
-        # Placeholder print
-        print("Student Updated")
-        print(f"Updated Data: {updated_data}")
+        # Validate required fields
+        required_fields = {
+            "Full Name": updated_data["fullname"],
+            "Email": updated_data["email"],
+            "Phone": updated_data["phone"],
+            "Course": updated_data["course"],
+        }
+
+        missing_fields = [name for name, value in required_fields.items() if not value]
+        if missing_fields:
+            messagebox.showwarning(
+                "Missing Information",
+                f"Please fill in the following required fields: {', '.join(missing_fields)}"
+            )
+            return
+
+        # Persist to database
+        try:
+            update_student(updated_data)
+        except DuplicateEmailError:
+            messagebox.showerror(
+                "Duplicate Email",
+                f"Email '{updated_data['email']}' is already registered to another student."
+            )
+            return
+        except Exception as e:
+            messagebox.showerror(
+                "Update Failed",
+                f"An error occurred while updating the student: {e}"
+            )
+            return
+
+        messagebox.showinfo(
+            "Success",
+            "Student updated successfully."
+        )
+
+        if self.back_callback:
+            self.back_callback()
 
     def go_back(self):
         """Navigate back using callback."""
@@ -510,8 +549,8 @@ if __name__ == "__main__":
 
     # Test student data
     test_student = {
-        "id": "STU001",
-        "name": "Aarav Sharma",
+        "student_id": "STU001",
+        "fullname": "Aarav Sharma",
         "email": "aarav.sharma@email.com",
         "phone": "9801234567",
         "dob": "2003-05-15",

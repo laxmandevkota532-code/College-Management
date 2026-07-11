@@ -1,6 +1,4 @@
 import customtkinter as ctk
-from tkinter import Canvas
-import tkinter as tk
 
 
 class ViewStudentPage(ctk.CTkFrame):
@@ -23,24 +21,14 @@ class ViewStudentPage(ctk.CTkFrame):
     TEXT_GRAY = "#6B7280"
     BORDER = "#E5E7EB"
     
-    # Dummy student data
-    DUMMY_STUDENT = {
-        "id": "STU001",
-        "name": "Rajesh Kumar",
-        "gender": "Male",
-        "dob": "2003-05-15",
-        "course": "Computer Science",
-        "phone": "+977-9841234567",
-        "email": "rajesh.kumar@example.com",
-        "address": "Kathmandu, Nepal",
-        "status": "Active",
-        "admission_date": "2023-08-01"
-    }
+    # Status badge colors (matches Student Management page)
+    STATUS_ACTIVE_COLOR = "#22C55E"    # Green
+    STATUS_INACTIVE_COLOR = "#EF4444"  # Red
     
-    def __init__(self, master, student_data=None, back_callback=None):
+    def __init__(self, master, student_data, back_callback=None):
         super().__init__(master, fg_color=self.BACKGROUND)
         
-        self.student_data = student_data or self.DUMMY_STUDENT
+        self.student_data = student_data
         self.back_callback = back_callback
         
         self.grid_rowconfigure(0, weight=0)  # Header
@@ -51,6 +39,18 @@ class ViewStudentPage(ctk.CTkFrame):
         self._create_header()
         self._create_main_content()
         self._create_bottom_buttons()
+    
+    def _get_initials(self):
+        """Derive initials from the student's full name."""
+        fullname = self.student_data.get("fullname", "").strip()
+        if not fullname:
+            return "?"
+        
+        parts = fullname.split()
+        if len(parts) == 1:
+            return parts[0][:2].upper()
+        
+        return (parts[0][0] + parts[-1][0]).upper()
     
     def _create_header(self):
         """Create top header with back button and title."""
@@ -132,8 +132,8 @@ class ViewStudentPage(ctk.CTkFrame):
         
         # Field data
         fields = [
-            ("Student ID", self.student_data.get("id", "N/A")),
-            ("Full Name", self.student_data.get("name", "N/A")),
+            ("Student ID", self.student_data.get("student_id", "N/A")),
+            ("Full Name", self.student_data.get("fullname", "N/A")),
             ("Gender", self.student_data.get("gender", "N/A")),
             ("Date of Birth", self.student_data.get("dob", "N/A")),
             ("Course", self.student_data.get("course", "N/A")),
@@ -141,7 +141,6 @@ class ViewStudentPage(ctk.CTkFrame):
             ("Email Address", self.student_data.get("email", "N/A")),
             ("Address", self.student_data.get("address", "N/A")),
             ("Status", self.student_data.get("status", "N/A")),
-            ("Admission Date", self.student_data.get("admission_date", "N/A")),
         ]
         
         for idx, (label_text, value) in enumerate(fields):
@@ -188,7 +187,7 @@ class ViewStudentPage(ctk.CTkFrame):
         profile_card.grid_propagate(False)
         profile_card.grid_columnconfigure(0, weight=1)
         
-        # Avatar placeholder
+        # Avatar placeholder (student initials)
         avatar_frame = ctk.CTkFrame(
             profile_card,
             fg_color=self.PRIMARY_BLUE,
@@ -199,19 +198,19 @@ class ViewStudentPage(ctk.CTkFrame):
         avatar_frame.pack(padx=16, pady=16)
         avatar_frame.grid_propagate(False)
         
-        # Avatar placeholder text
+        # Avatar initials text
         avatar_label = ctk.CTkLabel(
             avatar_frame,
-            text="📷",
+            text=self._get_initials(),
             text_color=self.WHITE,
-            font=ctk.CTkFont("Segoe UI", 48)
+            font=ctk.CTkFont("Segoe UI", 40, "bold")
         )
         avatar_label.pack(expand=True)
         
         # Student name
         name_label = ctk.CTkLabel(
             profile_card,
-            text=self.student_data.get("name", "Student Name"),
+            text=self.student_data.get("fullname", "N/A"),
             text_color=self.TEXT_DARK,
             font=ctk.CTkFont("Segoe UI", 14, "bold"),
             wraplength=200
@@ -221,7 +220,7 @@ class ViewStudentPage(ctk.CTkFrame):
         # Student ID
         id_label = ctk.CTkLabel(
             profile_card,
-            text=f"ID: {self.student_data.get('id', 'N/A')}",
+            text=f"ID: {self.student_data.get('student_id', 'N/A')}",
             text_color=self.TEXT_GRAY,
             font=ctk.CTkFont("Segoe UI", 10)
         )
@@ -251,7 +250,9 @@ class ViewStudentPage(ctk.CTkFrame):
         
         # Status badge
         status = self.student_data.get("status", "Active")
-        status_color = self.PRIMARY_BLUE if status == "Active" else "#EF4444"
+        status_color = (
+            self.STATUS_ACTIVE_COLOR if status == "Active" else self.STATUS_INACTIVE_COLOR
+        )
         
         status_frame = ctk.CTkFrame(
             profile_card,
@@ -301,18 +302,17 @@ if __name__ == "__main__":
     root.geometry("1200x700")
     root.title("View Student Page")
     
-    # Dummy student data for testing
+    # Dummy student data for standalone testing
     test_student = {
-        "id": "STU001",
-        "name": "Aarav Sharma",
+        "student_id": "STU001",
+        "fullname": "Aarav Sharma",
         "gender": "Male",
         "dob": "2003-05-15",
         "course": "CSIT",
         "phone": "9801234567",
         "email": "aarav.sharma@email.com",
         "address": "Kathmandu, Nepal",
-        "status": "Active",
-        "admission_date": "2023-08-01"
+        "status": "Active"
     }
     
     # Back callback function

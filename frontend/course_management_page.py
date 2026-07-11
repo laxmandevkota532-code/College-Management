@@ -1,12 +1,22 @@
 import customtkinter as ctk
+from tkinter import messagebox
+
+from backend.course_crud import (
+    get_all_courses,
+    delete_course
+)
 
 # Set appearance mode and default color theme
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
 class CoursesPage(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, open_add_course_callback=None, open_view_course_callback=None):
         super().__init__(master, fg_color="#F8F9FC")
+
+        # Navigation Callback Injection
+        self.open_add_course_callback = open_add_course_callback
+        self.open_view_course_callback = open_view_course_callback
 
         # --- Color Palette ---
         self.PRIMARY_BLUE = "#4F5BD5"
@@ -22,15 +32,6 @@ class CoursesPage(ctk.CTkFrame):
         # Responsive Layout Configuration
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
-
-        # --- Sample Data ---
-        self.courses_data = [
-            {"id": "CRS001", "name": "BCA", "duration": "4 Years", "fee": "Rs. 450000", "students": "320", "status": "Active"},
-            {"id": "CRS002", "name": "BIT", "duration": "4 Years", "fee": "Rs. 480000", "students": "250", "status": "Active"},
-            {"id": "CRS003", "name": "CSIT", "duration": "4 Years", "fee": "Rs. 500000", "students": "280", "status": "Active"},
-            {"id": "CRS004", "name": "BBS", "duration": "4 Years", "fee": "Rs. 350000", "students": "180", "status": "Inactive"},
-            {"id": "CRS005", "name": "BIM", "duration": "4 Years", "fee": "Rs. 470000", "students": "150", "status": "Active"},
-        ]
 
         self.create_main_content()
 
@@ -61,7 +62,12 @@ class CoursesPage(ctk.CTkFrame):
         search_entry = ctk.CTkEntry(action_bar, placeholder_text="Search Course...", width=300, height=40, fg_color=self.WHITE, border_color=self.PANEL_BG, text_color=self.TEXT_DARK)
         search_entry.grid(row=0, column=0, sticky="w")
 
-        add_btn = ctk.CTkButton(action_bar, text="+ Add Course", font=ctk.CTkFont(size=14, weight="bold"), fg_color=self.PRIMARY_BLUE, hover_color=self.HOVER_BLUE, text_color=self.WHITE, height=40, corner_radius=6)
+        add_btn = ctk.CTkButton(
+            action_bar, text="+ Add Course", font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=self.PRIMARY_BLUE, hover_color=self.HOVER_BLUE, text_color=self.WHITE,
+            height=40, corner_radius=6,
+            command=self.open_add_course
+        )
         add_btn.grid(row=0, column=1, sticky="e")
 
         # Central Layout Data Matrix Display Segment System Box Layer
@@ -71,8 +77,8 @@ class CoursesPage(ctk.CTkFrame):
         table_container.grid_rowconfigure(1, weight=1)
 
         # Matrix Headers Configuration
-        headers = ["Course ID", "Course Name", "Duration", "Fee", "Students", "Status", "Actions"]
-        columns_width = [110, 160, 120, 140, 110, 110, 160]
+        headers = ["Course ID", "Course Name", "Duration", "Description", "Actions"]
+        columns_width = [110, 160, 120, 220, 160]
 
         header_frame = ctk.CTkFrame(table_container, fg_color=self.PANEL_BG, height=45, corner_radius=0)
         header_frame.grid(row=0, column=0, sticky="ew")
@@ -93,47 +99,69 @@ class CoursesPage(ctk.CTkFrame):
         self.populate_table_data()
 
     def populate_table_data(self):
-        """Renders raw arrays iteratively matching design systems guidelines precisely."""
-        for row_idx, course in enumerate(self.courses_data):
-            
-            id_lbl = ctk.CTkLabel(self.scroll_frame, text=course["id"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
+        """Loads courses from the database and renders them into the table."""
+
+        # Clear any existing rows before re-rendering (needed for refresh after delete)
+        for widget in self.scroll_frame.winfo_children():
+            widget.destroy()
+
+        courses = get_all_courses()
+
+        for row_idx, course in enumerate(courses):
+
+            id_lbl = ctk.CTkLabel(self.scroll_frame, text=course["course_id"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
             id_lbl.grid(row=row_idx, column=0, padx=15, pady=12, sticky="ew")
 
-            name_lbl = ctk.CTkLabel(self.scroll_frame, text=course["name"], font=ctk.CTkFont(size=13, weight="bold"), text_color=self.TEXT_DARK, anchor="w")
+            name_lbl = ctk.CTkLabel(self.scroll_frame, text=course["course_name"], font=ctk.CTkFont(size=13, weight="bold"), text_color=self.TEXT_DARK, anchor="w")
             name_lbl.grid(row=row_idx, column=1, padx=15, pady=12, sticky="ew")
 
             duration_lbl = ctk.CTkLabel(self.scroll_frame, text=course["duration"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
             duration_lbl.grid(row=row_idx, column=2, padx=15, pady=12, sticky="ew")
 
-            fee_lbl = ctk.CTkLabel(self.scroll_frame, text=course["fee"], font=ctk.CTkFont(size=13), text_color=self.TEXT_DARK, anchor="w")
-            fee_lbl.grid(row=row_idx, column=3, padx=15, pady=12, sticky="ew")
-
-            students_lbl = ctk.CTkLabel(self.scroll_frame, text=course["students"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
-            students_lbl.grid(row=row_idx, column=4, padx=15, pady=12, sticky="ew")
-
-            # Status pill design geometry badge injection
-            status_text = course["status"]
-            badge_color = self.SUCCESS_GREEN if status_text == "Active" else self.DANGER_RED
-            
-            status_badge = ctk.CTkFrame(self.scroll_frame, fg_color=badge_color, corner_radius=12, width=75, height=24)
-            status_badge.grid(row=row_idx, column=5, padx=15, pady=12, sticky="w")
-            status_badge.grid_propagate(False)
-            
-            status_lbl = ctk.CTkLabel(status_badge, text=status_text, font=ctk.CTkFont(size=11, weight="bold"), text_color=self.WHITE)
-            status_lbl.place(relx=0.5, rely=0.5, anchor="center")
+            description_lbl = ctk.CTkLabel(self.scroll_frame, text=course["description"], font=ctk.CTkFont(size=13), text_color=self.TEXT_GRAY, anchor="w")
+            description_lbl.grid(row=row_idx, column=3, padx=15, pady=12, sticky="ew")
 
             # Action Frame Layout Container Row Grid Integration Line Logic
             action_panel = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
-            action_panel.grid(row=row_idx, column=6, padx=15, pady=12, sticky="ew")
+            action_panel.grid(row=row_idx, column=4, padx=15, pady=12, sticky="ew")
 
-            view_btn = ctk.CTkButton(action_panel, text="View", font=ctk.CTkFont(size=11), fg_color=self.PANEL_BG, hover_color="#E0E7FF", text_color=self.PRIMARY_BLUE, width=42, height=24, corner_radius=4)
+            view_btn = ctk.CTkButton(
+                action_panel, text="View", font=ctk.CTkFont(size=11),
+                fg_color=self.PANEL_BG, hover_color="#E0E7FF", text_color=self.PRIMARY_BLUE,
+                width=42, height=24, corner_radius=4,
+                command=lambda c=course: self.open_view_course(c)
+            )
             view_btn.grid(row=0, column=0, padx=2)
 
-            edit_btn = ctk.CTkButton(action_panel, text="Edit", font=ctk.CTkFont(size=11), fg_color=self.PANEL_BG, hover_color="#E0E7FF", text_color=self.PRIMARY_BLUE, width=42, height=24, corner_radius=4)
-            edit_btn.grid(row=0, column=1, padx=2)
+            delete_btn = ctk.CTkButton(
+                action_panel, text="Delete", font=ctk.CTkFont(size=11),
+                fg_color="#FEE2E2", hover_color="#FCA5A5", text_color=self.DANGER_RED,
+                width=46, height=24, corner_radius=4,
+                command=lambda c=course: self.handle_delete_course(c)
+            )
+            delete_btn.grid(row=0, column=1, padx=2)
 
-            delete_btn = ctk.CTkButton(action_panel, text="Delete", font=ctk.CTkFont(size=11), fg_color="#FEE2E2", hover_color="#FCA5A5", text_color=self.DANGER_RED, width=46, height=24, corner_radius=4)
-            delete_btn.grid(row=0, column=2, padx=2)
+    def handle_delete_course(self, course):
+        """Confirms, deletes the course from the database, then refreshes the table."""
+        confirm = messagebox.askyesno(
+            "Confirm Delete",
+            f"Are you sure you want to delete {course['course_name']} ({course['course_id']})?"
+        )
+        if not confirm:
+            return
+
+        delete_course(course["course_id"])
+        self.populate_table_data()
+
+    def open_add_course(self):
+        """Triggers Add Course page navigation via parent dashboard callback injection."""
+        if self.open_add_course_callback:
+            self.open_add_course_callback()
+
+    def open_view_course(self, course):
+        """Triggers View Course page with course data via parent dashboard callback injection."""
+        if self.open_view_course_callback:
+            self.open_view_course_callback(course)
 
 
 if __name__ == "__main__":
