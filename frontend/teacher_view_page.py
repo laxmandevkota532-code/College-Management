@@ -1,22 +1,4 @@
-"""
-College Management System
-Page: View Teacher
-
-Mirrors the exact design system, layout, and structure of the existing
-ViewStudentPage / ViewCoursePage — same header, same back button, same
-two-column layout, same white cards, same single bottom Back button.
-Teacher fields replace student/course fields.
-
-No database. No TreeView. No ttk/tkinter widgets — CustomTkinter only.
-"""
-
 import customtkinter as ctk
-
-# ------------------------------------------------------------------
-# GLOBAL APPEARANCE
-# ------------------------------------------------------------------
-ctk.set_appearance_mode("light")
-ctk.set_default_color_theme("blue")
 
 # ------------------------------------------------------------------
 # DESIGN SYSTEM CONSTANTS (same as ViewStudentPage / ViewCoursePage)
@@ -43,32 +25,39 @@ SPACING_MD = 24
 # DUMMY DATA — used if no teacher_data is passed in
 # ------------------------------------------------------------------
 DUMMY_TEACHER = {
-    "teacher_id": "TEC001",
-    "full_name": "Dr. Robert Wilson",
-    "email": "robert.wilson@college.edu",
-    "phone": "9801234567",
-    "dob": "1985-04-18",
+    "teacher_id": "T001",
+    "teacher_name": "Hari Sharma",
     "department": "Computer Science",
-    "designation": "Associate Professor",
-    "gender": "Male",
-    "qualification": "PhD in Computer Science",
-    "experience": "12 Years",
-    "salary": "Rs. 75,000",
-    "address": "Kathmandu, Nepal",
+    "email": "hari@gmail.com",
+    "phone": "9800000000",
+    "qualification": "MSc Computer Science",
+    "experience": "5 Years",
     "status": "Active",
+    "description": "Senior Computer Science Teacher"
 }
 
 
-class ViewTeacherPage(ctk.CTk):
-    def __init__(self, teacher_data=None, back_callback=None):
-        super().__init__()
+class ViewTeacherPage(ctk.CTkFrame):
+    """
+    ViewTeacherPage: A frame-based UI for displaying teacher details.
+    
+    Integrates with backend.teacher_crud for database operations.
+    Displays complete teacher information in read-only format.
+    """
+
+    def __init__(self, parent, teacher_data=None, back_callback=None):
+        """
+        Initialize the ViewTeacherPage frame.
+        
+        Args:
+            parent: Parent widget.
+            teacher_data: Dictionary containing teacher information.
+            back_callback: Callback function to execute when Back button is clicked.
+        """
+        super().__init__(parent, fg_color=COLOR_BG)
 
         self.teacher_data = teacher_data if teacher_data else DUMMY_TEACHER
         self.back_callback = back_callback
-
-        self.title("College Management System - View Teacher")
-        self.geometry("1300x800")
-        self.configure(fg_color=COLOR_BG)
 
         self._build_layout()
 
@@ -76,6 +65,7 @@ class ViewTeacherPage(ctk.CTk):
     # LAYOUT
     # ----------------------------------------------------------------
     def _build_layout(self):
+        """Build the complete page layout: header, body, bottom bar."""
         container = ctk.CTkFrame(self, fg_color=COLOR_BG)
         container.pack(fill="both", expand=True, padx=SPACING_LG, pady=SPACING_LG)
 
@@ -97,6 +87,7 @@ class ViewTeacherPage(ctk.CTk):
     # HEADER
     # ----------------------------------------------------------------
     def _build_header(self, parent):
+        """Build the page header with title, subtitle, and back button."""
         header = ctk.CTkFrame(parent, fg_color=COLOR_BG)
         header.pack(fill="x")
 
@@ -136,6 +127,7 @@ class ViewTeacherPage(ctk.CTk):
     # LEFT SIDE — TEACHER DETAILS CARD (READ-ONLY)
     # ----------------------------------------------------------------
     def _build_details_card(self, parent):
+        """Build the detailed teacher information card."""
         card = ctk.CTkFrame(
             parent, fg_color=COLOR_CARD, corner_radius=16,
             border_width=1, border_color=COLOR_BORDER,
@@ -150,25 +142,29 @@ class ViewTeacherPage(ctk.CTk):
         heading.pack(anchor="w", padx=24, pady=(24, 16))
 
         fields = [
-            ("Teacher ID", self.teacher_data.get("teacher_id", "")),
-            ("Full Name", self.teacher_data.get("full_name", "")),
-            ("Email Address", self.teacher_data.get("email", "")),
-            ("Phone Number", self.teacher_data.get("phone", "")),
-            ("Date of Birth", self.teacher_data.get("dob", "")),
-            ("Department", self.teacher_data.get("department", "")),
-            ("Designation", self.teacher_data.get("designation", "")),
-            ("Gender", self.teacher_data.get("gender", "")),
-            ("Qualification", self.teacher_data.get("qualification", "")),
-            ("Experience", self.teacher_data.get("experience", "")),
-            ("Salary", self.teacher_data.get("salary", "")),
-            ("Address", self.teacher_data.get("address", "")),
-            ("Status", self.teacher_data.get("status", "")),
+            ("Teacher ID", self.teacher_data.get("teacher_id", "N/A")),
+            ("Teacher Name", self.teacher_data.get("teacher_name", "N/A")),
+            ("Email Address", self.teacher_data.get("email", "N/A")),
+            ("Phone Number", self.teacher_data.get("phone", "N/A")),
+            ("Department", self.teacher_data.get("department", "N/A")),
+            ("Qualification", self.teacher_data.get("qualification", "N/A")),
+            ("Experience", self.teacher_data.get("experience", "N/A")),
+            ("Status", self.teacher_data.get("status", "N/A")),
+            ("Description", self.teacher_data.get("description", "N/A")),
         ]
 
         for label, value in fields:
             self._add_detail_row(card, label, value)
 
     def _add_detail_row(self, parent, label, value):
+        """
+        Add a single detail row to the card.
+        
+        Args:
+            parent: Parent widget.
+            label: Field label text.
+            value: Field value text.
+        """
         row = ctk.CTkFrame(parent, fg_color="transparent")
         row.pack(fill="x", padx=24, pady=8)
 
@@ -193,6 +189,7 @@ class ViewTeacherPage(ctk.CTk):
     # RIGHT SIDE — TEACHER SUMMARY CARD
     # ----------------------------------------------------------------
     def _build_summary_card(self, parent):
+        """Build the teacher summary card with avatar and key information."""
         card = ctk.CTkFrame(
             parent, fg_color=COLOR_CARD, corner_radius=16,
             border_width=1, border_color=COLOR_BORDER,
@@ -221,14 +218,14 @@ class ViewTeacherPage(ctk.CTk):
         avatar_label.pack(expand=True)
 
         name_label = ctk.CTkLabel(
-            card, text=self.teacher_data.get("full_name", ""),
+            card, text=self.teacher_data.get("teacher_name", "N/A"),
             font=ctk.CTkFont(family=FONT_FAMILY, size=18, weight="bold"),
             text_color=COLOR_TEXT_DARK,
         )
         name_label.pack(pady=(0, 4))
 
         id_badge = ctk.CTkLabel(
-            card, text=self.teacher_data.get("teacher_id", ""),
+            card, text=self.teacher_data.get("teacher_id", "N/A"),
             font=ctk.CTkFont(family=FONT_FAMILY, size=12, weight="bold"),
             text_color=COLOR_PRIMARY, fg_color=COLOR_PANEL,
             corner_radius=8, width=90, height=28,
@@ -238,11 +235,12 @@ class ViewTeacherPage(ctk.CTk):
         divider = ctk.CTkFrame(card, fg_color=COLOR_BORDER, height=1)
         divider.pack(fill="x", padx=24, pady=(0, 16))
 
-        self._add_summary_row(card, "Department", self.teacher_data.get("department", ""))
-        self._add_summary_row(card, "Designation", self.teacher_data.get("designation", ""))
+        self._add_summary_row(card, "Department", self.teacher_data.get("department", "N/A"))
+        self._add_summary_row(card, "Qualification", self.teacher_data.get("qualification", "N/A"))
+        self._add_summary_row(card, "Experience", self.teacher_data.get("experience", "N/A"))
 
         # Status badge
-        status = self.teacher_data.get("status", "")
+        status = self.teacher_data.get("status", "N/A")
         status_color = COLOR_SUCCESS if status.lower() == "active" else COLOR_INACTIVE
 
         status_row = ctk.CTkFrame(card, fg_color="transparent")
@@ -264,6 +262,14 @@ class ViewTeacherPage(ctk.CTk):
         status_badge.pack(anchor="w", pady=(6, 0))
 
     def _add_summary_row(self, parent, label, value):
+        """
+        Add a single summary row to the summary card.
+        
+        Args:
+            parent: Parent widget.
+            label: Field label text.
+            value: Field value text.
+        """
         row = ctk.CTkFrame(parent, fg_color="transparent")
         row.pack(fill="x", padx=24, pady=10)
 
@@ -285,6 +291,7 @@ class ViewTeacherPage(ctk.CTk):
     # BOTTOM BAR — SINGLE BACK BUTTON ONLY
     # ----------------------------------------------------------------
     def _build_bottom_bar(self, parent):
+        """Build the bottom button bar with back button."""
         top_divider = ctk.CTkFrame(parent, fg_color=COLOR_BORDER, height=1)
         top_divider.pack(fill="x", pady=(SPACING_MD, 0))
 
@@ -314,14 +321,23 @@ class ViewTeacherPage(ctk.CTk):
     # FUNCTIONS
     # ----------------------------------------------------------------
     def go_back(self):
-        print("[go_back] Navigating back to previous page.")
+        """Navigate back to the previous page."""
         if self.back_callback:
             self.back_callback()
-        else:
-            self.destroy()
 
 
 if __name__ == "__main__":
-    # Standalone preview with dummy data
-    app = ViewTeacherPage(teacher_data=None, back_callback=None)
-    app.mainloop()
+    # Standalone preview for testing
+    root = ctk.CTk()
+    root.geometry("1300x800")
+    root.title("College Management System - View Teacher")
+    root.configure(fg_color=COLOR_BG)
+
+    page = ViewTeacherPage(
+        root,
+        teacher_data=DUMMY_TEACHER
+    )
+
+    page.pack(fill="both", expand=True)
+
+    root.mainloop()

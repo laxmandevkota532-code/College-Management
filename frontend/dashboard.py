@@ -1,3 +1,4 @@
+
 import customtkinter as ctk
 from frontend.student_management_page import StudentManagementPage
 from frontend.course_management_page import CoursesPage
@@ -10,6 +11,8 @@ from frontend.student_view_page import ViewStudentPage
 from frontend.student_edit_page import EditStudentPage
 from frontend.add_course_page import AddCoursePage
 from frontend.course_view_page import ViewCoursePage
+from frontend.add_teacher_page import AddTeacherPage
+from frontend.teacher_view_page import ViewTeacherPage
 from backend.dashboard_crud import (
     get_total_students,
     get_total_courses,
@@ -406,7 +409,18 @@ class DashboardPage(ctk.CTkFrame):
         
     def menu_teachers(self): 
         self.set_active_menu("👨‍🏫 Teachers")
-        self.show_page(TeachersPage)
+
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = TeachersPage(
+            self.right_container,
+            open_add_teacher_callback=self.open_add_teacher_from_teachers,
+            open_view_teacher_callback=self.open_view_teacher,
+            open_edit_teacher_callback=self.open_edit_teacher
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
         
     def menu_attendance(self): 
         self.set_active_menu("📅 Attendance")
@@ -502,6 +516,45 @@ class DashboardPage(ctk.CTkFrame):
         )
 
         self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_add_teacher_from_teachers(self):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = AddTeacherPage(
+            self.right_container,
+            back_callback=self.menu_teachers
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_view_teacher(self, teacher):
+        if self.content_frame:
+            self.content_frame.destroy()
+
+        self.content_frame = ViewTeacherPage(
+            self.right_container,
+            teacher_data=teacher,
+            back_callback=self.menu_teachers
+        )
+
+        self.content_frame.grid(row=1, column=0, sticky="nsew")
+
+    def open_edit_teacher(self, teacher):
+        print("Edit Teacher:", teacher)
+        # Uncomment lines below when EditTeacherPage is built:
+        # if self.content_frame:
+        #     self.content_frame.destroy()
+        #
+        # from frontend.teacher_edit_page import EditTeacherPage
+        # self.content_frame = EditTeacherPage(
+        #     self.right_container,
+        #     teacher_data=teacher,
+        #     back_callback=self.menu_teachers
+        # )
+        #
+        # self.content_frame.grid(row=1, column=0, sticky="nsew")
+
 
 if __name__ == "__main__":
     root = ctk.CTk()

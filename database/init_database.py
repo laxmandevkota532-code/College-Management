@@ -71,10 +71,11 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS attendance (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id TEXT NOT NULL,
-    fullname TEXT,
-    course TEXT,
-    attendance_date TEXT,
-    status TEXT
+    fullname TEXT NOT NULL,
+    course TEXT NOT NULL ,
+    attendance_date TEXT NOT NULL,
+    status TEXT NOT NULL,
+    UNIQUE(student_id, attendance_date)
 )
 """)
 
