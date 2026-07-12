@@ -1,4 +1,3 @@
-
 import customtkinter as ctk
 from frontend.student_management_page import StudentManagementPage
 from frontend.course_management_page import CoursesPage
@@ -434,8 +433,25 @@ class DashboardPage(ctk.CTkFrame):
         self.set_active_menu("⚙ Settings")
         self.show_page(SettingsPage)
         
-    def menu_logout(self): 
-        print("Logout")
+    # ---------------------------------------------------------
+    # CHANGED METHOD — the only logic change in this whole file
+    # ---------------------------------------------------------
+    def menu_logout(self):
+        """Confirms logout, destroys the DashboardPage frame, and
+        rebuilds LoginPage on the SAME root window (no new window)."""
+        import tkinter.messagebox as messagebox
+        from frontend.login import LoginPage  # local import avoids circular import with login_page.py
+
+        confirm = messagebox.askyesno(
+            "Logout",
+            "Are you sure you want to logout?"
+        )
+
+        if confirm:
+            root = self.winfo_toplevel()  # the single ctk.CTk() window shared by Login and Dashboard
+            self.destroy()                # remove DashboardPage and everything nested inside it
+            LoginPage(root)                # rebuild the login UI directly on that same root
+    # ---------------------------------------------------------
     
     def open_add_student_from_dashboard(self):
         if self.content_frame:
@@ -554,16 +570,3 @@ class DashboardPage(ctk.CTkFrame):
         # )
         #
         # self.content_frame.grid(row=1, column=0, sticky="nsew")
-
-
-if __name__ == "__main__":
-    root = ctk.CTk()
-    root.title("Student Management System - Dashboard")
-    
-    # Process responsive scaling frame constraints cleanly
-    root.configure(fg_color=BACKGROUND)
-    root.after(100, lambda: root.state("zoomed"))
-    
-    # Initialize UI Component Canvas Instance
-    app = DashboardPage(root)
-    root.mainloop()

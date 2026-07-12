@@ -284,8 +284,3 @@ class LoginPage:
         self.main_frame.grid_rowconfigure(0, weight=1)
         self._create_left_panel()
         self._create_right_panel()
-
-if __name__ == "__main__":
-    root = ctk.CTk()
-    app = LoginPage(root)
-    root.mainloop()
